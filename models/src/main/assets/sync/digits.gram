@@ -2,23 +2,7 @@
 
 grammar digits;
 
-<digit> = punch in |
-          punch out |
-          break in |
-          break out |
-          meal in |
-          meal out |
-          transfer |
-          oh    |
-          zero  |
-          one   |
-          two   |
-          three |
-          four  |
-          five  |
-          six   |
-          seven |
-          eight |
-          nine  ;
+<digit> = yes |
+          no;
 
 public <digits> = <digit>+;

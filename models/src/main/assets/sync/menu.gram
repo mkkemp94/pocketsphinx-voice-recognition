@@ -9,4 +9,6 @@ public <item> =
           break out |
           meal in |
           meal out |
-          transfer;
+          transfer |
+          yes |
+          no;
