@@ -32,6 +32,8 @@ package edu.cmu.pocketsphinx.demo;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -73,6 +75,14 @@ public class VoiceRecognitionDemo extends Activity implements RecognitionListene
     
     /* Used to handle permission request */
     private static final int PERMISSIONS_REQUEST_RECORD_AUDIO = 19142;
+    
+    private AlertDialog mVerificationDialog;
+    
+    interface VerificationDialogCallback
+    {
+        void onResult(boolean success);
+    }
+    
     
     private SpeechRecognizer recognizer;
 //    private HashMap<String, Integer> captions;
@@ -213,9 +223,73 @@ public class VoiceRecognitionDemo extends Activity implements RecognitionListene
     /**
      * Show final result here.
      */
-    private void showFinalResult(String text)
+    private void showFinalResult(final String text)
     {
-        makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
+        hideVerificationDialog();
+    
+        if (text.equalsIgnoreCase("timeout"))
+        {
+            makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
+            stopVoiceRecognizer();
+            setActivityToIdle();
+        }
+        else
+        {
+            showVerificationDialog(text, new VerificationDialogCallback()
+            {
+                @Override
+                public void onResult(boolean success)
+                {
+                    hideVerificationDialog();
+    
+                    if (success)
+                    {
+                        makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
+                        stopVoiceRecognizer();
+                        setActivityToIdle();
+                    }
+                    else
+                    {
+                        stopVoiceRecognizer();
+                        startVoiceRecognizer();
+                    }
+                }
+            });
+        }
+    }
+    
+    private void showVerificationDialog(final String text,
+                                        final VerificationDialogCallback verificationDialogCallback)
+    {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Punch Type");
+        builder.setMessage("Do you want to " + text + "?");
+        builder.setCancelable(false);
+        builder.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i)
+            {
+                verificationDialogCallback.onResult(true);
+            }
+        });
+        builder.setNegativeButton("No", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int i)
+            {
+                verificationDialogCallback.onResult(false);
+            }
+        });
+    
+        mVerificationDialog = builder.create();
+        mVerificationDialog.show();
+    }
+    
+    private void hideVerificationDialog()
+    {
+        if ( mVerificationDialog != null)
+        {
+            mVerificationDialog.dismiss();
+        }
     }
     
     @Override
@@ -280,7 +354,7 @@ public class VoiceRecognitionDemo extends Activity implements RecognitionListene
             mWorkingText = hypothesis.getHypstr();
 //            makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
 //            showWorkingText(text);
-            showFinalResult(mWorkingText);
+//            showFinalResult(mWorkingText);
         }
     }
     
@@ -305,14 +379,14 @@ public class VoiceRecognitionDemo extends Activity implements RecognitionListene
         
         if ( ! mWorkingText.isEmpty() )
         {
-            stopVoiceRecognizer();
-            setActivityToIdle();
+            showFinalResult(mWorkingText);
+//            endVoiceRecognition();
         }
 //        showWorkingText("End of speech?");
 //        setActivityToIdle();
     }
     
-//    /**
+    //    /**
 //     * Stops the recognizer and starts listening to given search.
 //     * @param searchName name of search to start listening for
 //     */
@@ -365,8 +439,6 @@ public class VoiceRecognitionDemo extends Activity implements RecognitionListene
     {
 //        showWorkingText(error.getMessage());
         showFinalResult(error.getMessage());
-        stopVoiceRecognizer();
-        setActivityToIdle();
     }
     
     @Override
@@ -374,8 +446,6 @@ public class VoiceRecognitionDemo extends Activity implements RecognitionListene
     {
 //        showWorkingText("Timeout");
         showFinalResult("Timeout");
-        stopVoiceRecognizer();
-        setActivityToIdle();
 //        switchSearch(WAKEUP_SEARCH);
     }
     
@@ -388,4 +458,16 @@ public class VoiceRecognitionDemo extends Activity implements RecognitionListene
     {
         recognizer.startListening(VoiceRecognitionDemo.PUNCH_ACTIONS, 10000);
     }
+    
+//    private void endVoiceRecognition()
+//    {
+//        stopVoiceRecognizer();
+//        setActivityToIdle();
+//    }
+//
+//    private void restartVoiceRecognition()
+//    {
+//        stopVoiceRecognizer();
+//        startVoiceRecognizer();
+//    }
 }
