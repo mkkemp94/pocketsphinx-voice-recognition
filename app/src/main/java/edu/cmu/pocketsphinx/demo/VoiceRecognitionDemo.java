@@ -58,15 +58,10 @@ import static android.widget.Toast.makeText;
  * Source code originally obtained from:
  * https://github.com/cmusphinx/pocketsphinx
  */
-public class PocketSphinxActivity extends Activity implements
-        RecognitionListener
+public class VoiceRecognitionDemo extends Activity implements RecognitionListener
 {
-    
     /* Named searches allow to quickly reconfigure the decoder */
-    private static final String KWS_SEARCH = "wakeup";
-    private static final String FORECAST_SEARCH = "forecast";
-    private static final String DIGITS_SEARCH = "digits";
-    private static final String PHONE_SEARCH = "phones";
+    private static final String WAKEUP_SEARCH = "wakeup";
     private static final String MENU_SEARCH = "menu";
     
     /* Keyword we are looking for to activate menu */
@@ -78,6 +73,9 @@ public class PocketSphinxActivity extends Activity implements
     private SpeechRecognizer recognizer;
     private HashMap<String, Integer> captions;
     
+    private TextView mResultTextView;
+    private TextView mCaptionTextView;
+    
     @Override
     public void onCreate(Bundle state)
     {
@@ -85,14 +83,13 @@ public class PocketSphinxActivity extends Activity implements
         
         // Prepare the data for UI
         captions = new HashMap<>();
-        captions.put(KWS_SEARCH, R.string.kws_caption);
+        captions.put(WAKEUP_SEARCH, R.string.wakeup_caption);
         captions.put(MENU_SEARCH, R.string.menu_caption);
-        //        captions.put(DIGITS_SEARCH, R.string.digits_caption);
-        //        captions.put(PHONE_SEARCH, R.string.phone_caption);
-        //        captions.put(FORECAST_SEARCH, R.string.forecast_caption);
         setContentView(R.layout.main);
-        ((TextView) findViewById(R.id.caption_text))
-                .setText("Preparing the recognizer");
+    
+        mResultTextView = findViewById(R.id.result_text);
+        mCaptionTextView = findViewById(R.id.caption_text);
+        mCaptionTextView.setText("Preparing the recognizer.");
         
         // Check if user has given permission to record audio
         int permissionCheck = ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.RECORD_AUDIO);
@@ -101,6 +98,7 @@ public class PocketSphinxActivity extends Activity implements
             ActivityCompat.requestPermissions(this, new String[] { Manifest.permission.RECORD_AUDIO }, PERMISSIONS_REQUEST_RECORD_AUDIO);
             return;
         }
+        
         // Recognizer initialization is a time-consuming and it involves IO,
         // so we execute it in async task
         new SetupTask(this).execute();
@@ -108,9 +106,9 @@ public class PocketSphinxActivity extends Activity implements
     
     private static class SetupTask extends AsyncTask<Void, Void, Exception>
     {
-        WeakReference<PocketSphinxActivity> activityReference;
+        WeakReference<VoiceRecognitionDemo> activityReference;
         
-        SetupTask(PocketSphinxActivity activity)
+        SetupTask(VoiceRecognitionDemo activity)
         {
             this.activityReference = new WeakReference<>(activity);
         }
@@ -128,6 +126,7 @@ public class PocketSphinxActivity extends Activity implements
             {
                 return e;
             }
+            
             return null;
         }
         
@@ -136,14 +135,18 @@ public class PocketSphinxActivity extends Activity implements
         {
             if ( result != null )
             {
-                ((TextView) activityReference.get().findViewById(R.id.caption_text))
-                        .setText("Failed to init recognizer " + result);
+                activityReference.get().setCaption("Failed to init recognizer " + result);
             }
             else
             {
-                activityReference.get().switchSearch(KWS_SEARCH);
+                activityReference.get().switchSearch(WAKEUP_SEARCH);
             }
         }
+    }
+    
+    private void setCaption(String text)
+    {
+        mCaptionTextView.setText(text);
     }
     
     @Override
@@ -188,19 +191,20 @@ public class PocketSphinxActivity extends Activity implements
     public void onPartialResult(Hypothesis hypothesis)
     {
         if ( hypothesis == null )
-        { return; }
+        {
+            return;
+        }
         
         String text = hypothesis.getHypstr();
+        
         if ( text.equals(KEYPHRASE) )
-        { switchSearch(MENU_SEARCH); }
-        else if ( text.equals(DIGITS_SEARCH) )
-        { switchSearch(DIGITS_SEARCH); }
-        else if ( text.equals(PHONE_SEARCH) )
-        { switchSearch(PHONE_SEARCH); }
-        else if ( text.equals(FORECAST_SEARCH) )
-        { switchSearch(FORECAST_SEARCH); }
+        {
+            switchSearch(MENU_SEARCH);
+        }
         else
-        { ((TextView) findViewById(R.id.result_text)).setText(text); }
+        {
+            mResultTextView.setText(text);
+        }
     }
     
     /**
@@ -228,16 +232,22 @@ public class PocketSphinxActivity extends Activity implements
     @Override
     public void onEndOfSpeech()
     {
-        if ( ! recognizer.getSearchName().equals(KWS_SEARCH) )
-        { switchSearch(KWS_SEARCH); }
+        if ( ! recognizer.getSearchName().equals(WAKEUP_SEARCH) )
+        {
+            switchSearch(WAKEUP_SEARCH);
+        }
     }
     
+    /**
+     * Stops the recognizer and starts listening to given search.
+     * @param searchName name of search to start listening for
+     */
     private void switchSearch(String searchName)
     {
         recognizer.stop();
         
         // If we are not spotting, start listening with timeout (10000 ms or 10 seconds).
-        if ( searchName.equals(KWS_SEARCH) )
+        if ( searchName.equals(WAKEUP_SEARCH) )
         {
             recognizer.startListening(searchName);
         }
@@ -247,7 +257,7 @@ public class PocketSphinxActivity extends Activity implements
         }
         
         String caption = getResources().getString(captions.get(searchName));
-        ((TextView) findViewById(R.id.caption_text)).setText(caption);
+        setCaption(caption);
     }
     
     private void setupRecognizer(File assetsDir) throws IOException
@@ -269,34 +279,22 @@ public class PocketSphinxActivity extends Activity implements
          */
         
         // Create keyword-activation search.
-        recognizer.addKeyphraseSearch(KWS_SEARCH, KEYPHRASE);
+        recognizer.addKeyphraseSearch(WAKEUP_SEARCH, KEYPHRASE);
         
         // Create grammar-based search for selection between demos
         File menuGrammar = new File(assetsDir, "menu.gram");
         recognizer.addGrammarSearch(MENU_SEARCH, menuGrammar);
-        
-        //        // Create grammar-based search for digit recognition
-        //        File digitsGrammar = new File(assetsDir, "digits.gram");
-        //        recognizer.addGrammarSearch(DIGITS_SEARCH, digitsGrammar);
-        //
-        //        // Create language model search
-        //        File languageModel = new File(assetsDir, "weather.dmp");
-        //        recognizer.addNgramSearch(FORECAST_SEARCH, languageModel);
-        //
-        //        // Phonetic search
-        //        File phoneticModel = new File(assetsDir, "en-phone.dmp");
-        //        recognizer.addAllphoneSearch(PHONE_SEARCH, phoneticModel);
     }
     
     @Override
     public void onError(Exception error)
     {
-        ((TextView) findViewById(R.id.caption_text)).setText(error.getMessage());
+        setCaption(error.getMessage());
     }
     
     @Override
     public void onTimeout()
     {
-        switchSearch(KWS_SEARCH);
+        switchSearch(WAKEUP_SEARCH);
     }
 }
