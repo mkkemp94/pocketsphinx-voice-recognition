@@ -1,0 +1,12 @@
+#JSGF V1.0;
+
+grammar menu;
+
+public <item> =
+          punch in |
+          punch out |
+          break in |
+          break out |
+          meal in |
+          meal out |
+          transfer;
