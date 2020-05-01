@@ -4,7 +4,7 @@
     <string name="app_name">Time Collect Voice Recognition Demo</string>
     
     <string name="wakeup_caption">To start demonstration say \"oh mighty computer\".</string>
-    <string name="menu_caption">
+    <string name="instructions">
         Say \"punch in\", \"punch out\", \"meal in\", \"meal out\",
         \"break in\", \"break out\", or \"transfer\" to perform action.
     </string>

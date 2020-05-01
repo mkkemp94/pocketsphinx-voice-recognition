@@ -38,13 +38,15 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.util.Log;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
-import java.util.HashMap;
 
 import edu.cmu.pocketsphinx.Assets;
 import edu.cmu.pocketsphinx.Hypothesis;
@@ -60,36 +62,51 @@ import static android.widget.Toast.makeText;
  */
 public class VoiceRecognitionDemo extends Activity implements RecognitionListener
 {
-    /* Named searches allow to quickly reconfigure the decoder */
-    private static final String WAKEUP_SEARCH = "wakeup";
-    private static final String MENU_SEARCH = "menu";
+    private static final String TAG = "VoiceRecognitionDemo";
     
-    /* Keyword we are looking for to activate menu */
-    private static final String KEYPHRASE = "oh mighty computer";
+    /* Named searches allow to quickly reconfigure the decoder */
+//    private static final String WAKEUP_SEARCH = "wakeup";
+    private static final String PUNCH_ACTIONS = "punch_actions";
+    
+//    /* Keyword we are looking for to activate menu */
+//    private static final String KEYPHRASE = "oh mighty computer";
     
     /* Used to handle permission request */
     private static final int PERMISSIONS_REQUEST_RECORD_AUDIO = 19142;
     
     private SpeechRecognizer recognizer;
-    private HashMap<String, Integer> captions;
+//    private HashMap<String, Integer> captions;
     
-    private TextView mResultTextView;
+    private TextView mWorkingTextView;
     private TextView mCaptionTextView;
+    private Button mButtonWakeup;
+    
+    private String mWorkingText = "";
     
     @Override
     public void onCreate(Bundle state)
     {
         super.onCreate(state);
         
-        // Prepare the data for UI
-        captions = new HashMap<>();
-        captions.put(WAKEUP_SEARCH, R.string.wakeup_caption);
-        captions.put(MENU_SEARCH, R.string.menu_caption);
+//        // Prepare the data for UI
+//        captions = new HashMap<>();
+////        captions.put(WAKEUP_SEARCH, R.string.wakeup_caption);
+//        captions.put(MENU_SEARCH, R.string.instructions);
         setContentView(R.layout.main);
     
-        mResultTextView = findViewById(R.id.result_text);
+        mButtonWakeup = findViewById(R.id.btn_wakeup);
+        mWorkingTextView = findViewById(R.id.result_text);
         mCaptionTextView = findViewById(R.id.caption_text);
         mCaptionTextView.setText("Preparing the recognizer.");
+        mButtonWakeup.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view)
+            {
+                mWorkingText = "";
+                startVoiceRecognizer();
+                setActivityToWakeup();
+            }
+        });
         
         // Check if user has given permission to record audio
         int permissionCheck = ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.RECORD_AUDIO);
@@ -135,18 +152,70 @@ public class VoiceRecognitionDemo extends Activity implements RecognitionListene
         {
             if ( result != null )
             {
-                activityReference.get().setCaption("Failed to init recognizer " + result);
+                activityReference.get().showInstructions("Failed to init recognizer " + result);
             }
             else
             {
-                activityReference.get().switchSearch(WAKEUP_SEARCH);
+                activityReference.get().setActivityToIdle(); //switchSearch(WAKEUP_SEARCH);
             }
         }
     }
     
-    private void setCaption(String text)
+    private void setActivityToIdle()
     {
+        Log.d(TAG, "setActivityToIdle");
+//        stopVoiceRecognizer();
+        showWakeupButton();
+        hideInstructions();
+        showWorkingText("");
+    }
+    
+    private void setActivityToWakeup()
+    {
+        Log.d(TAG, "setActivityToWakeup");
+        String instructions = getInstructionsString();
+        showInstructions(instructions);
+        hideWakeupButton();
+    }
+    
+    private void showInstructions(String text)
+    {
+        Log.d(TAG, "showInstructions: " + text);
         mCaptionTextView.setText(text);
+        mCaptionTextView.setVisibility(View.VISIBLE);
+    }
+    
+    private void hideInstructions()
+    {
+        mCaptionTextView.setVisibility(View.GONE);
+    }
+    
+    private void showWakeupButton()
+    {
+        mButtonWakeup.setVisibility(View.VISIBLE);
+    }
+    
+    private void hideWakeupButton()
+    {
+        mButtonWakeup.setVisibility(View.GONE);
+    }
+    
+    private String getInstructionsString()
+    {
+        return getResources().getString(R.string.instructions);
+    }
+    
+    private void showWorkingText(String text)
+    {
+        mWorkingTextView.setText(text);
+    }
+    
+    /**
+     * Show final result here.
+     */
+    private void showFinalResult(String text)
+    {
+        makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
     }
     
     @Override
@@ -195,16 +264,8 @@ public class VoiceRecognitionDemo extends Activity implements RecognitionListene
             return;
         }
         
-        String text = hypothesis.getHypstr();
-        
-        if ( text.equals(KEYPHRASE) )
-        {
-            switchSearch(MENU_SEARCH);
-        }
-        else
-        {
-            mResultTextView.setText(text);
-        }
+        mWorkingText = hypothesis.getHypstr();
+        showWorkingText(mWorkingText);
     }
     
     /**
@@ -213,17 +274,20 @@ public class VoiceRecognitionDemo extends Activity implements RecognitionListene
     @Override
     public void onResult(Hypothesis hypothesis)
     {
-        ((TextView) findViewById(R.id.result_text)).setText("");
+//        mResultTextView.setText("");
         if ( hypothesis != null )
         {
-            String text = hypothesis.getHypstr();
-            makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
+            mWorkingText = hypothesis.getHypstr();
+//            makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
+//            showWorkingText(text);
+            showFinalResult(mWorkingText);
         }
     }
     
     @Override
     public void onBeginningOfSpeech()
     {
+        showWorkingText("Listening...");
     }
     
     /**
@@ -232,33 +296,43 @@ public class VoiceRecognitionDemo extends Activity implements RecognitionListene
     @Override
     public void onEndOfSpeech()
     {
-        if ( ! recognizer.getSearchName().equals(WAKEUP_SEARCH) )
+//        if ( ! recognizer.getSearchName().equals(WAKEUP_SEARCH) )
+//        {
+//            switchSearch(WAKEUP_SEARCH);
+//        }
+        
+        // TODO : Make a string builder and don't stop here if it's empty
+        
+        if ( ! mWorkingText.isEmpty() )
         {
-            switchSearch(WAKEUP_SEARCH);
+            stopVoiceRecognizer();
+            setActivityToIdle();
         }
+//        showWorkingText("End of speech?");
+//        setActivityToIdle();
     }
     
-    /**
-     * Stops the recognizer and starts listening to given search.
-     * @param searchName name of search to start listening for
-     */
-    private void switchSearch(String searchName)
-    {
-        recognizer.stop();
-        
-        // If we are not spotting, start listening with timeout (10000 ms or 10 seconds).
-        if ( searchName.equals(WAKEUP_SEARCH) )
-        {
-            recognizer.startListening(searchName);
-        }
-        else
-        {
-            recognizer.startListening(searchName, 10000);
-        }
-        
-        String caption = getResources().getString(captions.get(searchName));
-        setCaption(caption);
-    }
+//    /**
+//     * Stops the recognizer and starts listening to given search.
+//     * @param searchName name of search to start listening for
+//     */
+//    private void switchSearch(String searchName)
+//    {
+//        stopVoiceRecognizer();
+//
+//        // If we are not spotting, start listening with timeout (10000 ms or 10 seconds).
+//        if ( searchName.equals(WAKEUP_SEARCH) )
+//        {
+//            startVoiceRecognizer(searchName);
+//        }
+//        else
+//        {
+//            recognizer.startListening(searchName, 10000);
+//        }
+//
+//        String caption = getResources().getString(captions.get(searchName));
+//        setCaption(caption);
+//    }
     
     private void setupRecognizer(File assetsDir) throws IOException
     {
@@ -279,22 +353,39 @@ public class VoiceRecognitionDemo extends Activity implements RecognitionListene
          */
         
         // Create keyword-activation search.
-        recognizer.addKeyphraseSearch(WAKEUP_SEARCH, KEYPHRASE);
+//        recognizer.addKeyphraseSearch(WAKEUP_SEARCH, KEYPHRASE);
         
         // Create grammar-based search for selection between demos
         File menuGrammar = new File(assetsDir, "menu.gram");
-        recognizer.addGrammarSearch(MENU_SEARCH, menuGrammar);
+        recognizer.addGrammarSearch(PUNCH_ACTIONS, menuGrammar);
     }
     
     @Override
     public void onError(Exception error)
     {
-        setCaption(error.getMessage());
+//        showWorkingText(error.getMessage());
+        showFinalResult(error.getMessage());
+        stopVoiceRecognizer();
+        setActivityToIdle();
     }
     
     @Override
     public void onTimeout()
     {
-        switchSearch(WAKEUP_SEARCH);
+//        showWorkingText("Timeout");
+        showFinalResult("Timeout");
+        stopVoiceRecognizer();
+        setActivityToIdle();
+//        switchSearch(WAKEUP_SEARCH);
+    }
+    
+    private void stopVoiceRecognizer()
+    {
+        recognizer.stop();
+    }
+    
+    private void startVoiceRecognizer()
+    {
+        recognizer.startListening(VoiceRecognitionDemo.PUNCH_ACTIONS, 10000);
     }
 }
