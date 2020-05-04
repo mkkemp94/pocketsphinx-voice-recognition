@@ -1,0 +1,59 @@
+<resources>
+    <!--
+        Default screen margins, per the Android Design guidelines.
+        For HCM 80
+    -->
+    <dimen name="activity_horizontal_margin">8dp</dimen>
+    <dimen name="activity_vertical_margin">8dp</dimen>
+
+    <!-- Menu buttons ... default 90*0.8 dp x 170*0.8 dp -->
+    <dimen name="menu_button_height">72dp</dimen>
+    <dimen name="menu_button_width">136dp</dimen>
+
+    <!-- Check mark indicator -->
+    <dimen name="progress_indicator_size">90dp</dimen>
+
+    <!-- Text Sizes -->
+    <dimen name="extra_small_text">12sp</dimen>
+    <dimen name="small_text">12sp</dimen>
+    <dimen name="medium_text">22sp</dimen>
+    <dimen name="large_text">28sp</dimen>
+    <dimen name="extra_large_text">36sp</dimen>
+
+    <!-- Padding sizes -->
+    <dimen name="button_padding">4dp</dimen>
+    <dimen name="screen_padding">30dp</dimen>
+
+    <!-- Data ListDialog Size -->
+    <integer name="data_list_dialog_width_mod">90</integer>
+    <integer name="data_list_dialog_height_mod">90</integer>
+
+    <dimen name="facial_button_size">120dp</dimen>
+    <dimen name="facial_text_size">25sp</dimen>
+    <dimen name="facial_settings_icon_size">40dp</dimen>
+
+<!--    <dimen name="button_size">120dp</dimen>-->
+<!--    <dimen name="text_size">25sp</dimen>-->
+<!--    <dimen name="small_button_size">40dp</dimen>-->
+    <dimen name="index_padding_left">40dp</dimen>
+    <dimen name="index_padding_right">10dp</dimen>
+    <dimen name="index_padding_top">10dp</dimen>
+    <dimen name="index_padding_bottom">10dp</dimen>
+    <dimen name="index_text_size">16sp</dimen>
+<!--    <dimen name="home_button_size">60dp</dimen>-->
+<!--    <dimen name="logo_width">50dp</dimen>-->
+<!--    <dimen name="logo_height">20dp</dimen>-->
+<!--    <dimen name="alert_message_text_size">20sp</dimen>-->
+<!--    <dimen name="alert_padding">20dp</dimen>-->
+
+    <dimen name="button_size">170dp</dimen>
+    <dimen name="small_button_size">50dp</dimen>
+    <dimen name="home_button_size">80dp</dimen>
+    <dimen name="text_size">30sp</dimen>
+    <dimen name="subtext_size">20sp</dimen>
+    <dimen name="logo_width">80dp</dimen>
+    <dimen name="logo_height">40dp</dimen>
+    <dimen name="alert_message_text_size">25sp</dimen>
+    <dimen name="alert_padding">20dp</dimen>
+
+</resources>

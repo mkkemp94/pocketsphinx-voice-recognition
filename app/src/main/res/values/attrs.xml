@@ -1,0 +1,30 @@
+<resources>
+
+    <attr name="themeName" format="string" />
+
+    <!-- All colors -->
+    <attr name="activityBackground" format="color" />
+    <attr name="labelsTextColor" format="color" />
+    <attr name="buttonBackground" format="color" />
+    <attr name="alertOverlayBackground" format="color" />
+    <attr name="disablerBackground" format="color" />
+    <attr name="dialogBackground" format="color" />
+
+    <!-- Drawables -->
+    <attr name="clockInLeftDrawable" format="reference"/>
+    <attr name="clockOutRightDrawable" format="reference"/>
+    <attr name="breakStartDrawable" format="reference"/>
+    <attr name="breakEndDrawable" format="reference"/>
+    <attr name="mealStartDrawable" format="reference"/>
+    <attr name="mealEndDrawable" format="reference"/>
+    <attr name="employeeLeftDrawable" format="reference"/>
+    <attr name="managerDrawable" format="reference"/>
+    <attr name="addFingerLeftDrawable" format="reference"/>
+    <attr name="addFingerDrawable" format="reference"/>
+    <attr name="backArrowLeftDrawable" format="reference"/>
+    <attr name="nextArrowRightDrawable" format="reference"/>
+    <attr name="transferDrawable" format="reference"/>
+    <attr name="transferRightDrawable" format="reference"/>
+    <attr name="defaultStateDrawable" format="reference" />
+    <attr name="timecomLogoDrawable" format="reference" />
+</resources>

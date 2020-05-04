@@ -31,14 +31,10 @@
 package edu.cmu.pocketsphinx.demo;
 
 import android.Manifest;
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -49,6 +45,11 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.lifecycle.ViewModelProvider;
 import edu.cmu.pocketsphinx.Assets;
 import edu.cmu.pocketsphinx.Hypothesis;
 import edu.cmu.pocketsphinx.RecognitionListener;
@@ -61,7 +62,7 @@ import static android.widget.Toast.makeText;
  * Source code originally obtained from:
  * https://github.com/cmusphinx/pocketsphinx
  */
-public class VoiceRecognitionDemo extends Activity implements RecognitionListener
+public class VoiceRecognitionDemo extends AppCompatActivity implements RecognitionListener
 {
     private static final String TAG = "VoiceRecognitionDemo";
     
@@ -85,6 +86,8 @@ public class VoiceRecognitionDemo extends Activity implements RecognitionListene
     
     private String mResult = "";
     private String mWorkingText = "";
+    
+    private VoiceRecognitionViewModel mVoiceRecognitionViewModel;
     
     @Override
     public void onCreate(Bundle state)
@@ -118,6 +121,11 @@ public class VoiceRecognitionDemo extends Activity implements RecognitionListene
         // Recognizer initialization is a time-consuming and it involves IO,
         // so we execute it in async task
         new SetupTask(this).execute();
+    
+        ListenForCommandUseCase listenForCommandUseCase = new ListenForCommandUseCase();
+        VoiceRecognitionViewModelFactory voiceRecognitionViewModelFactory = new VoiceRecognitionViewModelFactory(listenForCommandUseCase);
+        mVoiceRecognitionViewModel = new ViewModelProvider(this, voiceRecognitionViewModelFactory)
+                .get(VoiceRecognitionViewModel.class);
     }
     
     private static class SetupTask extends AsyncTask<Void, Void, Exception>

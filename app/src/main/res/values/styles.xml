@@ -1,0 +1,84 @@
+<resources>
+
+    <style name="WindowAnimationTransition">
+        <item name="android:windowEnterAnimation">@android:anim/fade_in</item>
+        <item name="android:windowExitAnimation">@android:anim/fade_out</item>
+    </style>
+
+<!--<<<<<<< HEAD-->
+<!--    <style name="FullscreenTheme" parent="AppCompatTheme">-->
+<!--        <item name="android:windowNoTitle">true</item>-->
+<!--        <item name="android:windowActionBar">false</item>-->
+<!--        <item name="android:windowFullscreen">true</item>-->
+<!--        <item name="android:windowContentOverlay">@null</item>-->
+
+<!--        <item name="android:windowActionBarOverlay">false</item>-->
+<!--        <item name="android:windowBackground">@null</item>-->
+<!--        <item name="metaButtonBarStyle">?android:attr/buttonBarStyle</item>-->
+<!--        <item name="metaButtonBarButtonStyle">?android:attr/buttonBarButtonStyle</item>-->
+
+<!--        <item name="android:textColor">@color/colorAccent</item>-->
+
+<!--        <item name="editTextStyle">@style/EditTextStyle</item>-->
+
+<!--        <item name="android:textViewStyle">@style/CustomFontStyle</item>-->
+<!--        <item name="buttonStyle">@style/CustomFontStyle</item>-->
+
+<!--        <item name="android:textColorHint">@color/colorFaint</item>-->
+
+<!--    </style>-->
+
+<!--    <style name="FullscreenActionBarStyle" parent="android:Widget.Holo.ActionBar">-->
+<!--        <item name="android:background">@color/black_overlay</item>-->
+<!--    </style>-->
+
+<!--    <style name="PauseDialog" parent="@android:style/Theme.Dialog">-->
+<!--        <item name="android:windowAnimationStyle">@style/PauseDialogAnimation</item>-->
+<!--        <item name="android:windowBackground">@null</item>&lt;!&ndash;@drawable/panel_background</item> &ndash;&gt;-->
+<!--    </style>-->
+
+<!--    <style name="PauseDialogAnimation">-->
+<!--        <item name="android:windowEnterAnimation">@anim/fadein</item>-->
+<!--        <item name="android:windowExitAnimation">@anim/fadeout</item>-->
+<!--    </style>-->
+
+<!--=======-->
+<!--&gt;>>>>>> TIM-120-->
+
+    <!-- Setting edit text -->
+    <style name="settingEditText">
+        <item name="android:textSize">@dimen/large_text</item>
+        <item name="android:inputType">text</item>
+        <item name="android:imeOptions">actionDone</item>
+        <item name="android:maxLength">92</item>
+        <item name="android:textColor">?attr/labelsTextColor</item>
+    </style>
+
+    <!-- Menu Buttons in State -->
+    <style name="MenuButtonStyle">
+        <item name="android:layout_width">@dimen/menu_button_width</item>
+        <item name="android:layout_height">@dimen/menu_button_height</item>
+        <item name="android:shadowColor">@android:color/black</item>
+        <item name="android:shadowDx">-1.0</item>
+        <item name="android:shadowDy">-1.0</item>
+        <item name="android:shadowRadius">2</item>
+        <item name="android:scaleType">centerInside</item>
+        <item name="android:textColor">?attr/labelsTextColor</item>
+    </style>
+
+    <style name="CustomFontStyle" parent="android:Widget.TextView">
+        <item name="fontFamily">@font/font</item>
+    </style>
+
+    <style name="EditTextStyle" parent="android:Widget.EditText">
+        <item name="android:textStyle">bold</item>
+        <item name="android:textSize">@dimen/text_size</item>
+        <item name="android:textColor">@color/colorAccent</item>
+    </style>
+
+    <style name="facialTallerBarStyle" parent="@android:style/Widget.SeekBar">
+        <item name="android:indeterminateOnly">false</item>
+        <item name="android:minHeight">8dip</item>
+        <item name="android:maxHeight">20dip</item>
+    </style>
+</resources>

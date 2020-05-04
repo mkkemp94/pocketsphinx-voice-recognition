@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Default theme -->
+    <style name="DefaultTheme" parent="@style/Theme.AppCompat.Light.DarkActionBar">
+
+    </style>
+
+</resources>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Default theme -->
+    <color name="defaultBackgroundColor">#FFFFFF</color>
+    <color name="defaultLabelsTextColor">#000000</color>
+    <color name="defaultButtonColor">#bccee3</color>
+    <color name="defaultAlertOverlay">#C2C1C1</color>
+    <color name="defaultDisablerColor">#83000000</color>
+    <color name="defaultDialogBackground">#C2C1C1</color>
+
+    <color name="colorAccent">#FF4081</color>
+    <color name="colorFaint">#51C3BBBB</color>
+    <color name="black_overlay">#202020</color>
+    <color name="alert_overlay">#272727</color>
+    <color name="disabler_color">#83000000</color>
+
+    <color name="colorLightWhite">#A29A9A</color>
+
+    <!-- Dark theme -->
+    <color name="darkLabelsTextColor">#FFFFFF</color>
+    <color name="darkBackgroundColor">#000000</color>
+    <color name="darkButtonColor">#bccee3</color>
+    <color name="darkAlertOverlay">#272727</color>
+    <color name="darkDisablerColor">#83000000</color>
+    <color name="darkDialogBackground">#66000000</color>
+
+</resources>
