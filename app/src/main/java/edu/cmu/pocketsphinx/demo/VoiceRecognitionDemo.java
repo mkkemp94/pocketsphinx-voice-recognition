@@ -33,7 +33,6 @@ package edu.cmu.pocketsphinx.demo;
 import android.Manifest;
 import android.app.AlertDialog;
 import android.content.pm.PackageManager;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -41,20 +40,17 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.io.File;
-import java.io.IOException;
-import java.lang.ref.WeakReference;
-
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.lifecycle.ViewModelProvider;
-import edu.cmu.pocketsphinx.Assets;
-import edu.cmu.pocketsphinx.Hypothesis;
-import edu.cmu.pocketsphinx.RecognitionListener;
-import edu.cmu.pocketsphinx.SpeechRecognizer;
-import edu.cmu.pocketsphinx.SpeechRecognizerSetup;
+import edu.cmu.pocketsphinx.demo.repository.SpeechRecognizerRepository;
+import edu.cmu.pocketsphinx.demo.response.SpeechResponse;
+import edu.cmu.pocketsphinx.demo.usecases.SetupSpeechRecognizerUseCase;
+import edu.cmu.pocketsphinx.demo.usecases.ShutdownSpeechRecognizerUseCase;
+import edu.cmu.pocketsphinx.demo.usecases.StartSpeechRecognizerUseCase;
+import edu.cmu.pocketsphinx.demo.usecases.StopSpeechRecognizerUseCase;
 
 import static android.widget.Toast.makeText;
 
@@ -62,21 +58,12 @@ import static android.widget.Toast.makeText;
  * Source code originally obtained from:
  * https://github.com/cmusphinx/pocketsphinx
  */
-public class VoiceRecognitionDemo extends AppCompatActivity implements RecognitionListener
+public class VoiceRecognitionDemo extends AppCompatActivity
 {
-    private static final String TAG = "VoiceRecognitionDemo";
-    
-    /* Named searches allow to quickly reconfigure the decoder */
-    private static final String PUNCH_ACTIONS = "punch_actions";
-    private static final String VOICE_COMMAND_YES = "yes";
-    private static final String VOICE_COMMAND_NO = "no";
-    private static final String VOICE_TIMEOUT = "timeout";
-    private static final String VOICE_LISTENING = "Listening...";
+    public static final String TAG = "VoiceRecognitionDemo";
     
     /* Used to handle permission request */
     private static final int PERMISSIONS_REQUEST_RECORD_AUDIO = 19142;
-    
-    private SpeechRecognizer recognizer;
     
     private AlertDialog mVerificationDialog;
     
@@ -84,31 +71,24 @@ public class VoiceRecognitionDemo extends AppCompatActivity implements Recogniti
     private TextView mCaptionTextView;
     private Button mButtonStartRecognition;
     
-    private String mResult = "";
-    private String mWorkingText = "";
-    
-    private VoiceRecognitionViewModel mVoiceRecognitionViewModel;
+    private SpeechRecognizerViewModel mSpeechRecognizerViewModel;
     
     @Override
     public void onCreate(Bundle state)
     {
         super.onCreate(state);
         setContentView(R.layout.main);
-    
+        
         mButtonStartRecognition = findViewById(R.id.btn_wakeup);
         mWorkingTextView = findViewById(R.id.result_text);
         mCaptionTextView = findViewById(R.id.caption_text);
         mCaptionTextView.setText("Preparing the recognizer.");
-        mButtonStartRecognition.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view)
-            {
-                mWorkingText = "";
-                mResult = "";
-                startVoiceReceiver();
-                setActivityToWakeup();
-            }
-        });
+        mButtonStartRecognition.setOnClickListener(view ->
+                                                   {
+                                                       Log.d(TAG, "Start recognizer from main button press");
+                                                       mSpeechRecognizerViewModel.startSpeechRecognizer();
+                                                       setActivityToWakeup();
+                                                   });
         
         // Check if user has given permission to record audio
         int permissionCheck = ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.RECORD_AUDIO);
@@ -118,58 +98,49 @@ public class VoiceRecognitionDemo extends AppCompatActivity implements Recogniti
             return;
         }
         
-        // Recognizer initialization is a time-consuming and it involves IO,
-        // so we execute it in async task
-        new SetupTask(this).execute();
+        SpeechRecognizerRepository speechRecognizerRepository = new SpeechRecognizerRepository();
+        SetupSpeechRecognizerUseCase setupSpeechRecognizerUseCase = new SetupSpeechRecognizerUseCase(speechRecognizerRepository);
+        StartSpeechRecognizerUseCase startSpeechRecognizerUseCase = new StartSpeechRecognizerUseCase(speechRecognizerRepository);
+        StopSpeechRecognizerUseCase stopSpeechRecognizerUseCase = new StopSpeechRecognizerUseCase(speechRecognizerRepository);
+        ShutdownSpeechRecognizerUseCase shutdownSpeechRecognizerUseCase = new ShutdownSpeechRecognizerUseCase(speechRecognizerRepository);
+        SpeechRecognizerViewModelFactory speechRecognizerViewModelFactory = new SpeechRecognizerViewModelFactory(setupSpeechRecognizerUseCase,
+                                                                                                                 startSpeechRecognizerUseCase,
+                                                                                                                 stopSpeechRecognizerUseCase,
+                                                                                                                 shutdownSpeechRecognizerUseCase);
+        mSpeechRecognizerViewModel = new ViewModelProvider(this, speechRecognizerViewModelFactory).get(SpeechRecognizerViewModel.class);
+        
+        mSpeechRecognizerViewModel.onSetupResponse()
+                                  .observe(this, this::handleSetupResult);
     
-        ListenForCommandUseCase listenForCommandUseCase = new ListenForCommandUseCase();
-        VoiceRecognitionViewModelFactory voiceRecognitionViewModelFactory = new VoiceRecognitionViewModelFactory(listenForCommandUseCase);
-        mVoiceRecognitionViewModel = new ViewModelProvider(this, voiceRecognitionViewModelFactory)
-                .get(VoiceRecognitionViewModel.class);
+        mSpeechRecognizerViewModel.onSpeechResponse()
+                                  .observe(this, this::showFinalResult);
+        
+        Log.d(TAG, "Setup up from main oncreate");
+        mSpeechRecognizerViewModel.setupSpeechRecognizer();
     }
     
-    private static class SetupTask extends AsyncTask<Void, Void, Exception>
+    private void handleSetupResult(String error)
     {
-        WeakReference<VoiceRecognitionDemo> activityReference;
-        
-        SetupTask(VoiceRecognitionDemo activity)
+        Log.d(TAG, "handleSetupResult: " + error);
+        if ( error.equals("success") )
         {
-            this.activityReference = new WeakReference<>(activity);
+            setActivityToIdle();
         }
-        
-        @Override
-        protected Exception doInBackground(Void... params)
+        else
         {
-            try
-            {
-                Assets assets = new Assets(activityReference.get());
-                File assetDir = assets.syncAssets();
-                activityReference.get().setupRecognizer(assetDir);
-            }
-            catch (IOException e)
-            {
-                return e;
-            }
-            
-            return null;
-        }
-        
-        @Override
-        protected void onPostExecute(Exception result)
-        {
-            if ( result != null )
-            {
-                activityReference.get().showFailedToInitRecognizer(result);
-            }
-            else
-            {
-                activityReference.get().setActivityToIdle();
-            }
+            showFailedToInitRecognizer(error);
         }
     }
     
-    private void showFailedToInitRecognizer(Exception result)
+    private void shutdownSpeechRecognizer()
     {
+        Log.d(TAG, "shutdownSpeechRecognizer");
+        mSpeechRecognizerViewModel.shutdownSpeechRecognizer();
+    }
+    
+    private void showFailedToInitRecognizer(String result)
+    {
+        Log.d(TAG, "showFailedToInitRecognizer");
         String error = "Failed to init recognizer " + result;
         mCaptionTextView.setText(error);
         mCaptionTextView.setVisibility(View.VISIBLE);
@@ -226,51 +197,70 @@ public class VoiceRecognitionDemo extends AppCompatActivity implements Recogniti
     /**
      * Show final result here.
      */
-    private void showFinalResult(final String result)
+    private void showFinalResult(final SpeechResponse result)
     {
-        hideConfirmationDialog();
-        switch (result)
+        Log.d(TAG, "showFinalResult : " + result.mSpeechStatus + ", " + result.mData + ", " + result.mError);
+        switch (result.mSpeechStatus)
         {
-            case VOICE_COMMAND_YES:
+            case YES:
                 // TODO Move forward from here
-                makeText(getApplicationContext(), mResult, Toast.LENGTH_SHORT).show();
+                makeText(getApplicationContext(), result.mData, Toast.LENGTH_SHORT).show();
                 hideConfirmationDialog();
                 setActivityToIdle();
-                stopVoiceRecognizer();
+                mSpeechRecognizerViewModel.stopSpeechRecognizer();
                 break;
-            case VOICE_COMMAND_NO:
+            case NO:
                 hideConfirmationDialog();
-                restartVoiceRecognizer();
+                mSpeechRecognizerViewModel.stopSpeechRecognizer();
+                mSpeechRecognizerViewModel.startSpeechRecognizer();
                 break;
-            case VOICE_TIMEOUT:
-                makeText(getApplicationContext(), result, Toast.LENGTH_SHORT).show();
+            case TIMEOUT:
+                makeText(getApplicationContext(), result.mError, Toast.LENGTH_SHORT).show();
+                showWorkingText(result.mError);
                 hideConfirmationDialog();
                 setActivityToIdle();
-                stopVoiceRecognizer();
+                mSpeechRecognizerViewModel.stopSpeechRecognizer();
                 break;
+            case LISTENING:
+            case WORKING:
+                showWorkingText(result.mData);
+                break;
+            case ERROR:
+                showWorkingText(result.mError);
+                hideConfirmationDialog();
+                mSpeechRecognizerViewModel.stopSpeechRecognizer();
+                break;
+            case HYPOTHESIS:
+                Log.d(TAG, "In hypo");
+                hideConfirmationDialog();
+                showConfirmationDialog(result.mData);
+                mSpeechRecognizerViewModel.stopSpeechRecognizer();
+                mSpeechRecognizerViewModel.startSpeechRecognizer();
+                break;
+            
             default:
-                mResult = result;
-                showConfirmationDialog(result);
-                restartVoiceRecognizer();
+                Log.e(TAG, "What is this? " + result.mSpeechStatus);
                 break;
         }
     }
     
     private void showConfirmationDialog(final String text)
     {
+        Log.d(TAG, "showConfirmationDialog: " + text);
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         
         builder.setTitle("Punch Type");
         builder.setMessage("Do you want to " + text + "? Say yes or no.");
         builder.setCancelable(false);
-    
+        
         mVerificationDialog = builder.create();
         mVerificationDialog.show();
     }
     
     private void hideConfirmationDialog()
     {
-        if ( mVerificationDialog != null)
+        Log.d(TAG, "hideConfirmationDialog");
+        if ( mVerificationDialog != null )
         {
             mVerificationDialog.dismiss();
         }
@@ -288,7 +278,7 @@ public class VoiceRecognitionDemo extends AppCompatActivity implements Recogniti
             {
                 // Recognizer initialization is a time-consuming and it involves IO,
                 // so we execute it in async task
-                new SetupTask(this).execute();
+                mSpeechRecognizerViewModel.setupSpeechRecognizer();
             }
             else
             {
@@ -301,115 +291,6 @@ public class VoiceRecognitionDemo extends AppCompatActivity implements Recogniti
     public void onDestroy()
     {
         super.onDestroy();
-        
-        if ( recognizer != null )
-        {
-            recognizer.cancel();
-            recognizer.shutdown();
-        }
-    }
-    
-    /**
-     * In partial result we get quick updates about current hypothesis. In
-     * keyword spotting mode we can react here, in other modes we need to wait
-     * for final result in onResult.
-     */
-    @Override
-    public void onPartialResult(Hypothesis hypothesis)
-    {
-        if ( hypothesis == null )
-        {
-            return;
-        }
-        
-        mWorkingText = hypothesis.getHypstr();
-        showWorkingText(mWorkingText);
-    }
-    
-    /**
-     * This callback is called when we stop the recognizer.
-     */
-    @Override
-    public void onResult(Hypothesis hypothesis)
-    {
-        if ( hypothesis != null )
-        {
-            mWorkingText = hypothesis.getHypstr();
-        }
-    }
-    
-    @Override
-    public void onBeginningOfSpeech()
-    {
-        showWorkingText(VOICE_LISTENING);
-    }
-    
-    /**
-     * We stop recognizer here to get a final result
-     */
-    @Override
-    public void onEndOfSpeech()
-    {
-        if ( ! mWorkingText.isEmpty() )
-        {
-            showFinalResult(mWorkingText);
-        }
-    }
-    
-    private void setupRecognizer(File assetsDir) throws IOException
-    {
-        // The recognizer can be configured to perform multiple searches
-        // of different kind and switch between them
-        
-        recognizer = SpeechRecognizerSetup.defaultSetup()
-                                          .setAcousticModel(new File(assetsDir, "en-us-ptm"))
-                                          .setDictionary(new File(assetsDir, "cmudict-en-us.dict"))
-        
-                                          .setRawLogDir(assetsDir) // To disable logging of raw audio comment out this call (takes a lot of space on the device)
-        
-                                          .getRecognizer();
-        recognizer.addListener(this);
-
-        /* In your application you might not need to add all those searches.
-          They are added here for demonstration. You can leave just one.
-         */
-        
-        // Create keyword-activation search.
-//        recognizer.addKeyphraseSearch(WAKEUP_SEARCH, KEYPHRASE);
-        
-        // Create grammar-based search for selection between demos
-        File menuGrammar = new File(assetsDir, "menu.gram");
-        recognizer.addGrammarSearch(PUNCH_ACTIONS, menuGrammar);
-    
-//        File digitGrammar = new File(assetsDir, "digits.gram");
-//        recognizer.addGrammarSearch(CONFIRMATION_ACTIONS, digitGrammar);
-    }
-    
-    @Override
-    public void onError(Exception error)
-    {
-        showFinalResult(error.getMessage());
-    }
-    
-    @Override
-    public void onTimeout()
-    {
-        showFinalResult(VOICE_TIMEOUT);
-    }
-    
-    private void stopVoiceRecognizer()
-    {
-        recognizer.stop();
-    }
-    
-    private void startVoiceReceiver()
-    {
-        recognizer.startListening(VoiceRecognitionDemo.PUNCH_ACTIONS, 10000);
-    }
-    
-    private void restartVoiceRecognizer()
-    {
-        stopVoiceRecognizer();
-        startVoiceReceiver();
+        shutdownSpeechRecognizer();
     }
 }
