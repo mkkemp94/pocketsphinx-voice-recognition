@@ -24,8 +24,6 @@ public class SpeechRecognizerLocal implements RecognitionListener
         void onListening();
     
         void onTimeout();
-    
-        void onPartialResult(String partialResult);
         
         void onEndOfSpeech(String result);
         
@@ -34,8 +32,6 @@ public class SpeechRecognizerLocal implements RecognitionListener
     
     private SpeechRecognizerCallback mSpeechRecognizerCallback;
     private SpeechRecognizer mSpeechRecognizer;
-    
-    private String mWorkingText = "";
     
     public void setupRecognizer(final MutableLiveData<String> mutableLiveData)
     {
@@ -102,8 +98,6 @@ public class SpeechRecognizerLocal implements RecognitionListener
     {
         Log.d(TAG, "startSpeechRecognizer local");
         
-        mWorkingText = "";
-        
         if (mSpeechRecognizerCallback == null)
         {
             mSpeechRecognizerCallback = speechRecognizerCallback;
@@ -122,14 +116,15 @@ public class SpeechRecognizerLocal implements RecognitionListener
     {
         if ( hypothesis == null )
         {
+            Log.e(TAG, "Partial result hypothesis is null!");
             return;
         }
         
-        mWorkingText = hypothesis.getHypstr();
-        
+        String mWorkingText = hypothesis.getHypstr();
         Log.d(TAG, "Partial Result local: " + mWorkingText);
+    
         if (mSpeechRecognizerCallback != null)
-            mSpeechRecognizerCallback.onPartialResult(mWorkingText);
+            mSpeechRecognizerCallback.onEndOfSpeech(mWorkingText);
     }
     
     /**
@@ -138,11 +133,7 @@ public class SpeechRecognizerLocal implements RecognitionListener
     @Override
     public void onResult(Hypothesis hypothesis)
     {
-        if ( hypothesis != null )
-        {
-            mWorkingText = hypothesis.getHypstr();
-            Log.d(TAG, "onResult: " + mWorkingText);
-        }
+    
     }
     
     @Override
@@ -159,12 +150,7 @@ public class SpeechRecognizerLocal implements RecognitionListener
     @Override
     public void onEndOfSpeech()
     {
-        if ( ! mWorkingText.isEmpty() )
-        {
-            Log.d(TAG, "onEndOfSpeech: " + mWorkingText);
-            if (mSpeechRecognizerCallback != null)
-                mSpeechRecognizerCallback.onEndOfSpeech(mWorkingText);
-        }
+    
     }
     
     @Override

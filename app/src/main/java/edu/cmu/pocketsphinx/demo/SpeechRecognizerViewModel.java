@@ -22,6 +22,16 @@ class SpeechRecognizerViewModel extends ViewModel
     private static final String VOICE_TIMEOUT = "Timeout";
     private static final String VOICE_LISTENING = "Listening...";
     
+    private static final String[] PUNCH_ARRAY = new String[] {
+            "punch in",
+            "punch out",
+            "meal in",
+            "meal out",
+            "break in",
+            "break out",
+            "transfer"
+    };
+    
     // Count on this stopping itself
     private SetupSpeechRecognizerUseCase mSetupSpeechRecognizerUseCase;
     private StartSpeechRecognizerUseCase mStartSpeechRecognizerUseCase;
@@ -83,13 +93,6 @@ class SpeechRecognizerViewModel extends ViewModel
         }
     
         @Override
-        public void onPartialResult(String partialResult)
-        {
-            Log.d(TAG, "Partial Result: " + partialResult);
-            mSpeechResponse.setValue(SpeechResponse.working(partialResult));
-        }
-    
-        @Override
         public void onEndOfSpeech(String result)
         {
             Log.d(TAG, "End of speech: " + result);
@@ -100,13 +103,18 @@ class SpeechRecognizerViewModel extends ViewModel
             }
             else if (result.equals(VOICE_COMMAND_NO))
             {
+                mFinalResult = "";
                 mSpeechResponse.setValue(SpeechResponse.no());
             }
-            else
+            else if (punchArrayContains(result))
             {
                 // hypothesis
                 mFinalResult = result;
                 mSpeechResponse.setValue(SpeechResponse.hypothesis(result));
+            }
+            else
+            {
+                mSpeechResponse.setValue(SpeechResponse.working(result));
             }
         }
     
@@ -116,6 +124,17 @@ class SpeechRecognizerViewModel extends ViewModel
             mSpeechResponse.setValue(SpeechResponse.error(error));
         }
     };
+    
+    private boolean punchArrayContains(String result)
+    {
+        for (String element : PUNCH_ARRAY)
+        {
+            if (element.equals(result))
+                return true;
+        }
+        
+        return false;
+    }
     
     void stopSpeechRecognizer()
     {

@@ -37,6 +37,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -70,6 +71,7 @@ public class VoiceRecognitionDemo extends AppCompatActivity
     private TextView mWorkingTextView;
     private TextView mCaptionTextView;
     private Button mButtonStartRecognition;
+    private ProgressBar mProgressBar;
     
     private SpeechRecognizerViewModel mSpeechRecognizerViewModel;
     
@@ -79,6 +81,7 @@ public class VoiceRecognitionDemo extends AppCompatActivity
         super.onCreate(state);
         setContentView(R.layout.main);
         
+        mProgressBar = findViewById(R.id.progressBar);
         mButtonStartRecognition = findViewById(R.id.btn_wakeup);
         mWorkingTextView = findViewById(R.id.result_text);
         mCaptionTextView = findViewById(R.id.caption_text);
@@ -86,7 +89,7 @@ public class VoiceRecognitionDemo extends AppCompatActivity
         mButtonStartRecognition.setOnClickListener(view ->
                                                    {
                                                        Log.d(TAG, "Start recognizer from main button press");
-                                                       mSpeechRecognizerViewModel.startSpeechRecognizer();
+                                                       startSpeechRecognizer();
                                                        setActivityToWakeup();
                                                    });
         
@@ -117,6 +120,22 @@ public class VoiceRecognitionDemo extends AppCompatActivity
         
         Log.d(TAG, "Setup up from main oncreate");
         mSpeechRecognizerViewModel.setupSpeechRecognizer();
+    }
+    
+    private void startSpeechRecognizer()
+    {
+        if (mProgressBar.getVisibility() != View.VISIBLE)
+            mProgressBar.setVisibility(View.VISIBLE);
+        
+        mSpeechRecognizerViewModel.startSpeechRecognizer();
+    }
+    
+    private void stopSpeechRecognizer()
+    {
+        if (mProgressBar.getVisibility() != View.INVISIBLE)
+            mProgressBar.setVisibility(View.INVISIBLE);
+        
+        mSpeechRecognizerViewModel.stopSpeechRecognizer();
     }
     
     private void handleSetupResult(String error)
@@ -207,19 +226,19 @@ public class VoiceRecognitionDemo extends AppCompatActivity
                 makeText(getApplicationContext(), result.mData, Toast.LENGTH_SHORT).show();
                 hideConfirmationDialog();
                 setActivityToIdle();
-                mSpeechRecognizerViewModel.stopSpeechRecognizer();
+                stopSpeechRecognizer();
                 break;
             case NO:
                 hideConfirmationDialog();
-                mSpeechRecognizerViewModel.stopSpeechRecognizer();
-                mSpeechRecognizerViewModel.startSpeechRecognizer();
+                stopSpeechRecognizer();
+                startSpeechRecognizer();
                 break;
             case TIMEOUT:
                 makeText(getApplicationContext(), result.mError, Toast.LENGTH_SHORT).show();
                 showWorkingText(result.mError);
                 hideConfirmationDialog();
                 setActivityToIdle();
-                mSpeechRecognizerViewModel.stopSpeechRecognizer();
+                stopSpeechRecognizer();
                 break;
             case LISTENING:
             case WORKING:
@@ -228,17 +247,18 @@ public class VoiceRecognitionDemo extends AppCompatActivity
             case ERROR:
                 showWorkingText(result.mError);
                 hideConfirmationDialog();
-                mSpeechRecognizerViewModel.stopSpeechRecognizer();
+                stopSpeechRecognizer();
                 break;
             case HYPOTHESIS:
                 Log.d(TAG, "In hypo");
                 hideConfirmationDialog();
                 showConfirmationDialog(result.mData);
-                mSpeechRecognizerViewModel.stopSpeechRecognizer();
-                mSpeechRecognizerViewModel.startSpeechRecognizer();
+                stopSpeechRecognizer();
+                startSpeechRecognizer();
                 break;
             
             default:
+                stopSpeechRecognizer();
                 Log.e(TAG, "What is this? " + result.mSpeechStatus);
                 break;
         }
