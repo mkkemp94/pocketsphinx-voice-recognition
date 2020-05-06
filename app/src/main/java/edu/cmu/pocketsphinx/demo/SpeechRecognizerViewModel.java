@@ -67,6 +67,7 @@ class SpeechRecognizerViewModel extends ViewModel
     void setupSpeechRecognizer()
     {
         Log.d(TAG, "Setup from vm");
+        mFinalResult = "";
         mSetupSpeechRecognizerUseCase.execute(mSetupResponse);
     }
     
@@ -99,7 +100,14 @@ class SpeechRecognizerViewModel extends ViewModel
         
             if (result.equals(VOICE_COMMAND_YES))
             {
-                mSpeechResponse.setValue(SpeechResponse.yes(mFinalResult));
+                if (mFinalResult.isEmpty())
+                {
+                    mSpeechResponse.setValue(SpeechResponse.no());
+                }
+                else
+                {
+                    mSpeechResponse.setValue(SpeechResponse.yes(mFinalResult));
+                }
             }
             else if (result.equals(VOICE_COMMAND_NO))
             {
@@ -145,5 +153,16 @@ class SpeechRecognizerViewModel extends ViewModel
     void shutdownSpeechRecognizer()
     {
         mShutdownSpeechRecognizerUseCase.execute();
+    }
+    
+    void correctSpeechHypothesis()
+    {
+        mSpeechResponse.setValue(SpeechResponse.yes(mFinalResult));
+    }
+    
+    void incorrectSpeechHypothesis()
+    {
+        mFinalResult = "";
+        mSpeechResponse.setValue(SpeechResponse.no());
     }
 }

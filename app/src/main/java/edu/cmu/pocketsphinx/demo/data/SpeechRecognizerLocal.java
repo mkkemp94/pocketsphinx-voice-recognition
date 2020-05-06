@@ -4,6 +4,7 @@ import android.util.Log;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import androidx.lifecycle.MutableLiveData;
 import edu.cmu.pocketsphinx.Assets;
@@ -17,8 +18,6 @@ import static edu.cmu.pocketsphinx.demo.VoiceRecognitionDemo.TAG;
 
 public class SpeechRecognizerLocal implements RecognitionListener
 {
-    private static final String PUNCH_ACTIONS = "punch_actions";
-    
     public interface SpeechRecognizerCallback
     {
         void onListening();
@@ -30,8 +29,12 @@ public class SpeechRecognizerLocal implements RecognitionListener
         void onError(String error);
     }
     
+    private static final String PUNCH_ACTIONS = "punch_actions";
+    
     private SpeechRecognizerCallback mSpeechRecognizerCallback;
     private SpeechRecognizer mSpeechRecognizer;
+    
+    private volatile AtomicInteger mFailures = new AtomicInteger();
     
     public void setupRecognizer(final MutableLiveData<String> mutableLiveData)
     {
@@ -97,13 +100,12 @@ public class SpeechRecognizerLocal implements RecognitionListener
     public void startSpeechRecognizer(SpeechRecognizerCallback speechRecognizerCallback)
     {
         Log.d(TAG, "startSpeechRecognizer local");
+    
+        mFailures.set(0);
+    
+        mSpeechRecognizerCallback = speechRecognizerCallback;
         
-        if (mSpeechRecognizerCallback == null)
-        {
-            mSpeechRecognizerCallback = speechRecognizerCallback;
-        }
-        
-        mSpeechRecognizer.startListening(PUNCH_ACTIONS, 10000);
+        mSpeechRecognizer.startListening(PUNCH_ACTIONS);
     }
     
     /**
@@ -117,6 +119,11 @@ public class SpeechRecognizerLocal implements RecognitionListener
         if ( hypothesis == null )
         {
             Log.e(TAG, "Partial result hypothesis is null!");
+            if ( mFailures.incrementAndGet() >= 6 )
+            {
+                stopSpeechRecognizer();
+                startSpeechRecognizer(mSpeechRecognizerCallback);
+            }
             return;
         }
         
@@ -180,7 +187,6 @@ public class SpeechRecognizerLocal implements RecognitionListener
     
     public void stopSpeechRecognizer()
     {
-        mSpeechRecognizerCallback = null;
         mSpeechRecognizer.stop();
     }
 }

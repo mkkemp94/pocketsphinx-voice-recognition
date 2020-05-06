@@ -272,6 +272,9 @@ public class VoiceRecognitionDemo extends AppCompatActivity
         builder.setTitle("Punch Type");
         builder.setMessage("Do you want to " + text + "? Say yes or no.");
         builder.setCancelable(false);
+    
+        builder.setPositiveButton("Yes", (dialogInterface, i) -> mSpeechRecognizerViewModel.correctSpeechHypothesis());
+        builder.setNegativeButton("No", (dialog, i) -> mSpeechRecognizerViewModel.incorrectSpeechHypothesis());
         
         mVerificationDialog = builder.create();
         mVerificationDialog.show();
